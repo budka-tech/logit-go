@@ -1,4 +1,4 @@
-module github.com/pa-khan/logit-go
+module github.com/budka/logit
 
 go 1.23.1
 
