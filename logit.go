@@ -1,6 +1,8 @@
 package logit
 
 import (
+	"fmt"
+	"github.com/budka-tech/configo"
 	"github.com/budka-tech/envo"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
@@ -9,7 +11,18 @@ import (
 	"time"
 )
 
-func NewLogger(env *envo.Env, appVersion string) (*zap.Logger, error) {
+func NewLogger(sen configo.Sentry, env *envo.Env, appVersion string) (*zap.Logger, error) {
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:              fmt.Sprintf("https://%v@%v", sen.Key, sen.Host),
+		TracesSampleRate: 1.0,
+		Debug:            true,
+		Environment:      env.String(),
+	})
+
+	if err != nil {
+		panic("Ошибка инициализации Sentry: " + err.Error())
+	}
+
 	cfg := zap.Config{
 		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
 		Development: true,
