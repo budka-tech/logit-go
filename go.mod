@@ -1,4 +1,4 @@
-module github.com/budka-tech/logit
+module github.com/budka-tech/logit-go
 
 go 1.23.1
 

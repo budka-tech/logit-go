@@ -1,4 +1,4 @@
-package logit_go
+package logit
 
 import (
 	"github.com/budka-tech/envo"
