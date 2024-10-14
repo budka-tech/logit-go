@@ -2,12 +2,14 @@ package logit
 
 import (
 	"github.com/budka-tech/envo"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"time"
 )
 
-func NewLogger(env envo.Env) (*zap.Logger, error) {
+func NewLogger(env *envo.Env, appVersion string) (*zap.Logger, error) {
 	cfg := zap.Config{
 		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
 		Development: true,
@@ -29,7 +31,7 @@ func NewLogger(env envo.Env) (*zap.Logger, error) {
 		ErrorOutputPaths: []string{"stderr"},
 	}
 
-	switch env {
+	switch *env {
 	case "prod":
 		cfg = zap.NewProductionConfig()
 		cfg.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
@@ -43,7 +45,43 @@ func NewLogger(env envo.Env) (*zap.Logger, error) {
 		cfg.EncoderConfig.NameKey = "op"
 	}
 
-	return cfg.Build()
+	logger, err := cfg.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	logger = logger.With(zap.String("version", appVersion))
+
+	core := logger.Core()
+	core = zapcore.NewTee(core, sentryCore(zap.ErrorLevel))
+	logger = zap.New(core)
+
+	return logger, nil
+}
+
+func sentryCore(minLevel zapcore.Level) zapcore.Core {
+	return zapcore.RegisterHooks(zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(zapcore.AddSync(sentryLogWriter{})),
+		zap.NewAtomicLevelAt(minLevel),
+	), func(entry zapcore.Entry) error {
+		if entry.Level >= zapcore.ErrorLevel {
+			sentry.CaptureMessage(entry.Message)
+		}
+		return nil
+	})
+}
+
+type sentryLogWriter struct{}
+
+func (s sentryLogWriter) Write(p []byte) (n int, err error) {
+	sentry.CaptureMessage(string(p))
+	return len(p), nil
+}
+
+func (s sentryLogWriter) Sync() error {
+	sentry.Flush(2 * time.Second)
+	return nil
 }
 
 func TraceId() string {
