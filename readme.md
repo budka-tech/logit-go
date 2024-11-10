@@ -27,6 +27,7 @@ import (
 )
 
 func main() {
+    const op := "main"
     appConf := &configo.App{...}
     loggerConf := &configo.Logger{...}
     senConf := &configo.Sentry{...}
@@ -35,17 +36,17 @@ func main() {
     logger := logit.MustNewLogger(appConf, loggerConf, senConf, env)
 
     // Использование логгера
-    logger.Info("Application started", "main", nil)
-}
+    ctx := logger.NewTraceContext(nil)
+    logger.Info(ctx, "Приложение успешно запущено", main)
 ```
 
 ### Логирование
 ```go
-logger.Debug("Debug message", "operation", nil)
-logger.Info("Info message", "operation", nil)
-logger.Warn("Warning message", "operation", nil)
-logger.Error(err, "operation", nil)
-logger.Fatal(err, "operation", nil)
+logger.Debug("Debug message")
+logger.Info(ctx, "Info message", "operation")
+logger.Warn(ctx, "Warning message", "operation")
+logger.Error(ctx, err, "operation")
+logger.Fatal(ctx, err, "operation")
 ```
 
 ### Тестирование
