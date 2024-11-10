@@ -83,17 +83,17 @@ func (receiver *LogIt) Fatal(err error, op string, traceId *string, fields ...za
 // MustNewLogger - инициализация нового логгера
 func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *configo.Sentry, env *envo.Env) *LogIt {
 	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
+		TimeKey:  "time",
+		LevelKey: "level",
+		NameKey:  "logger",
+		//CallerKey:      "caller",
 		MessageKey:     "msg",
 		StacktraceKey:  "traceId",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 		EncodeTime:     zapcore.TimeEncoderOfLayout(loggerConf.TimeFormat),
 		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
+		//EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
 	var encoder zapcore.Encoder
@@ -146,7 +146,7 @@ func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *co
 	core := zapcore.NewTee(cores...)
 
 	// Создаем логгер
-	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	logger := zap.New(core, zap.AddStacktrace(zapcore.ErrorLevel))
 
 	// Добавляем дополнительные поля
 	fields := []zap.Field{
