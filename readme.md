@@ -85,7 +85,7 @@ logger := logit.NewNopLogger()
 - Объект, представляющий текущее окружение
 
 Пример конфигурации:
-
+##### Go
 ```go
 appConf := &configo.App{
     Name:    "MyApp",
@@ -114,3 +114,52 @@ senConf := &configo.Sentry{
 env := envo.New()
 
 logger := logit.MustNewLogger(appConf, loggerConf, senConf, env)
+```
+
+Yaml
+
+```yaml
+app:
+  name: "MyApp"
+  version: "1.0.0"
+
+logger:
+  level: 0
+  dir: "logs"
+  maxSize: 10
+  maxBackups: 3
+  maxAge: 365
+  compress: true
+  rotationTime: "24h"
+  consoleLevel: 0
+  fileLevel: 0
+  enableConsole: true
+  enableFile: true
+  timeFormat: "2006-01-02T15:04:05.000Z07:00"
+```
+
+
+### Описание полей
+#### App конфигурация
+
+| Параметр | Описание |
+|----------|----------|
+| `name`   | Имя приложения |
+| `version`| Версия приложения |
+
+#### Logger конфигурация
+
+| Параметр | Описание | Тип | Значение по умолчанию |
+|----------|----------|-----|------------------------|
+| `level` | Общий уровень логирования | int | 0 |
+| `dir` | Директория для хранения лог-файлов | string | "logs" |
+| `maxSize` | Максимальный размер файла лога в мегабайтах | int | 10 |
+| `maxBackups` | Максимальное количество старых лог-файлов для хранения | int | 3 |
+| `maxAge` | Максимальное время хранения старых лог-файлов в днях | int | 365 |
+| `compress` | Сжимать ротированные лог-файлы | bool | true |
+| `rotationTime` | Интервал ротации логов | string | "24h" |
+| `consoleLevel` | Уровень логирования для консоли | int | 0 |
+| `fileLevel` | Уровень логирования для файла | int | 0 |
+| `enableConsole` | Включить вывод в консоль | bool | true |
+| `enableFile` | Включить запись в файл | bool | true |
+| `timeFormat` | Формат времени для логов | string | "2006-01-02T15:04:05.000Z07:00" |
