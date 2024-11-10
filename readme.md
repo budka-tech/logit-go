@@ -35,18 +35,20 @@ func main() {
 
     logger := logit.MustNewLogger(appConf, loggerConf, senConf, env)
 
-    // Использование логгера
-    ctx := logger.NewTraceContext(nil)
-    logger.Info(ctx, "Приложение успешно запущено", main)
+// Использование логгера
+    ctx := logger.NewTraceCtx(nil, &op)
+    logger.Info(ctx, "Приложение успешно запущено")
 ```
 
 ### Логирование
 ```go
+const op := "module.submodule.Method"
+ctx := logger.NewCtx(nil, &op, nil)
 logger.Debug("Debug message")
-logger.Info(ctx, "Info message", "operation")
-logger.Warn(ctx, "Warning message", "operation")
-logger.Error(ctx, err, "operation")
-logger.Fatal(ctx, err, "operation")
+logger.Info(ctx, "Info message")
+logger.Warn(ctx, "Warning message")
+logger.Error(ctx, err)
+logger.Fatal(ctx, err)
 ```
 
 ### Тестирование
