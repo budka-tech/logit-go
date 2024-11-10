@@ -22,11 +22,13 @@ type logIt struct {
 
 type Logger interface {
 	Debug(fields ...interface{})
-	Info(ctx context.Context, message, op string, fields ...zap.Field)
-	Warn(ctx context.Context, message, op string, fields ...zap.Field)
-	Error(ctx context.Context, err error, op string, fields ...zap.Field)
-	Fatal(ctx context.Context, err error, op string, fields ...zap.Field)
-	NewTraceContext(traceId *string) context.Context
+	Info(ctx context.Context, message string, fields ...zap.Field)
+	Warn(ctx context.Context, message string, fields ...zap.Field)
+	Error(ctx context.Context, err error, fields ...zap.Field)
+	Fatal(ctx context.Context, err error, fields ...zap.Field)
+	NewCtx(ctx context.Context, op string, traceId *string) context.Context
+	NewOpCtx(ctx context.Context, op string, traceId *string) context.Context
+	NewTraceCtx(ctx context.Context, traceId *string) context.Context
 }
 
 func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *configo.Sentry, env *envo.Env) Logger {
@@ -140,8 +142,8 @@ func (receiver *logIt) Debug(fields ...interface{}) {
 	fmt.Println(strings.Repeat("-", 80))
 }
 
-// Info - логирование информационных сообщений
-func (receiver *logIt) Info(ctx context.Context, message, op string, fields ...zap.Field) {
+func (receiver *logIt) Info(ctx context.Context, message string, fields ...zap.Field) {
+	op := receiver.getOpFromContext(ctx)
 	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Info(
 		message,
@@ -153,7 +155,8 @@ func (receiver *logIt) Info(ctx context.Context, message, op string, fields ...z
 }
 
 // Warn - логирование предупреждений
-func (receiver *logIt) Warn(ctx context.Context, message, op string, fields ...zap.Field) {
+func (receiver *logIt) Warn(ctx context.Context, message string, fields ...zap.Field) {
+	op := receiver.getOpFromContext(ctx)
 	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Warn(
 		message,
@@ -165,7 +168,8 @@ func (receiver *logIt) Warn(ctx context.Context, message, op string, fields ...z
 }
 
 // Error - логирование ошибок
-func (receiver *logIt) Error(ctx context.Context, err error, op string, fields ...zap.Field) {
+func (receiver *logIt) Error(ctx context.Context, err error, fields ...zap.Field) {
+	op := receiver.getOpFromContext(ctx)
 	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Error(
 		err.Error(),
@@ -178,7 +182,8 @@ func (receiver *logIt) Error(ctx context.Context, err error, op string, fields .
 }
 
 // Fatal - логирование критических ошибок, завершает приложение
-func (receiver *logIt) Fatal(ctx context.Context, err error, op string, fields ...zap.Field) {
+func (receiver *logIt) Fatal(ctx context.Context, err error, fields ...zap.Field) {
+	op := receiver.getOpFromContext(ctx)
 	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Fatal(
 		err.Error(),
@@ -190,13 +195,44 @@ func (receiver *logIt) Fatal(ctx context.Context, err error, op string, fields .
 	sentry.CaptureException(err)
 }
 
-func (receiver *logIt) TraceId(traceId *string) *string {
-	if traceId != nil {
+// NewCtx создает новый контекст с указанной операцией и traceId
+func (receiver *logIt) NewCtx(ctx context.Context, op string, traceId *string) context.Context {
+	if traceId == nil {
+		newTraceId := uuid.New().String()
+		traceId = &newTraceId
+	}
+	ctx = context.WithValue(ctx, "op", op)
+	return context.WithValue(ctx, "traceId", *traceId)
+}
+
+// NewOpCtx создает новый контекст с указанной операцией
+func (receiver *logIt) NewOpCtx(ctx context.Context, op string, traceId *string) context.Context {
+	return receiver.NewCtx(ctx, op, traceId)
+}
+
+// NewTraceCtx создает новый контекст с указанным traceId
+func (receiver *logIt) NewTraceCtx(ctx context.Context, traceId *string) context.Context {
+	if traceId == nil {
+		newTraceId := uuid.New().String()
+		traceId = &newTraceId
+	}
+	return context.WithValue(ctx, "traceId", *traceId)
+}
+
+// getOpFromContext извлекает операцию из контекста
+func (receiver *logIt) getOpFromContext(ctx context.Context) string {
+	if op, ok := ctx.Value("op").(string); ok {
+		return op
+	}
+	return "unknown"
+}
+
+// getTraceIdFromContext извлекает traceId из контекста
+func (receiver *logIt) getTraceIdFromContext(ctx context.Context) string {
+	if traceId, ok := ctx.Value("traceId").(string); ok {
 		return traceId
 	}
-
-	newTraceId := uuid.New().String()
-	return &newTraceId
+	return uuid.New().String()
 }
 
 func (receiver *logIt) NewTraceContext(traceId *string) context.Context {
@@ -205,13 +241,6 @@ func (receiver *logIt) NewTraceContext(traceId *string) context.Context {
 		traceId = &newTraceId
 	}
 	return context.WithValue(context.Background(), "traceId", *traceId)
-}
-
-func (receiver *logIt) getTraceIdFromContext(ctx context.Context) string {
-	if traceId, ok := ctx.Value("traceId").(string); ok {
-		return traceId
-	}
-	return uuid.New().String()
 }
 
 func fileName(appName, appVersion string) string {
