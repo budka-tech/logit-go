@@ -27,7 +27,7 @@ type Logger interface {
 	Error(ctx context.Context, err error, fields ...zap.Field)
 	Fatal(ctx context.Context, err error, fields ...zap.Field)
 	NewCtx(ctx context.Context, op string, traceId *string) context.Context
-	NewOpCtx(ctx context.Context, op string, traceId *string) context.Context
+	NewOpCtx(ctx context.Context, op string) context.Context
 	NewTraceCtx(ctx context.Context, traceId *string) context.Context
 }
 
@@ -205,9 +205,9 @@ func (receiver *logIt) NewCtx(ctx context.Context, op string, traceId *string) c
 	return context.WithValue(ctx, "traceId", *traceId)
 }
 
-// NewOpCtx создает новый контекст с указанной операцией
-func (receiver *logIt) NewOpCtx(ctx context.Context, op string, traceId *string) context.Context {
-	return receiver.NewCtx(ctx, op, traceId)
+// NewOpCtx создает новый контекст с указанной операции
+func (receiver *logIt) NewOpCtx(ctx context.Context, op string) context.Context {
+	return context.WithValue(ctx, "op", op)
 }
 
 // NewTraceCtx создает новый контекст с указанным traceId
