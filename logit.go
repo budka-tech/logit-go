@@ -14,74 +14,20 @@ import (
 	"time"
 )
 
-type LogIt struct {
+type logIt struct {
 	logger *zap.Logger
 }
 
-// Debug - логирование отладочной информации
-func (receiver *LogIt) Debug(op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
-	receiver.logger.Debug(
-		"Debug",
-		append([]zap.Field{
-			zap.String("op", op),
-			zap.String("traceId", *traceId),
-		}, fields...)...,
-	)
+type Logger interface {
+	Debug(op string, traceId *string, fields ...zap.Field)
+	Info(message, op string, traceId *string, fields ...zap.Field)
+	Warn(message, op string, traceId *string, fields ...zap.Field)
+	Error(err error, op string, traceId *string, fields ...zap.Field)
+	Fatal(err error, op string, traceId *string, fields ...zap.Field)
+	TraceId(traceId *string) *string
 }
 
-// Info - логирование информационных сообщений
-func (receiver *LogIt) Info(message, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
-	receiver.logger.Info(
-		message,
-		append([]zap.Field{
-			zap.String("op", op),
-			zap.String("traceId", *traceId),
-		}, fields...)...,
-	)
-}
-
-// Warn - логирование предупреждений
-func (receiver *LogIt) Warn(message, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
-	receiver.logger.Warn(
-		message,
-		append([]zap.Field{
-			zap.String("op", op),
-			zap.String("traceId", *traceId),
-		}, fields...)...,
-	)
-}
-
-// Error - логирование ошибок
-func (receiver *LogIt) Error(err error, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
-	receiver.logger.Error(
-		err.Error(),
-		append([]zap.Field{
-			zap.String("op", op),
-			zap.String("traceId", *traceId),
-		}, fields...)...,
-	)
-	sentry.CaptureException(err)
-}
-
-// Fatal - логирование критических ошибок, завершает приложение
-func (receiver *LogIt) Fatal(err error, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
-	receiver.logger.Fatal(
-		err.Error(),
-		append([]zap.Field{
-			zap.String("op", op),
-			zap.String("traceId", *traceId),
-		}, fields...)...,
-	)
-	sentry.CaptureException(err)
-}
-
-// MustNewLogger - инициализация нового логгера
-func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *configo.Sentry, env *envo.Env) *LogIt {
+func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *configo.Sentry, env *envo.Env) Logger {
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:  "time",
 		LevelKey: "level",
@@ -156,11 +102,80 @@ func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *co
 
 	logger = logger.With(fields...)
 
-	return &LogIt{logger: logger}
+	return &logIt{logger: logger}
 }
 
-// TraceId - генерация уникального идентификатора трассировки
-func (receiver *LogIt) TraceId(traceId *string) *string {
+func NewNopLogger() Logger {
+	nopCore := zapcore.NewNopCore()
+	nopLogger := zap.New(nopCore)
+	return &logIt{logger: nopLogger}
+}
+
+// Debug - логирование отладочной информации
+func (receiver *logIt) Debug(op string, traceId *string, fields ...zap.Field) {
+	traceId = receiver.TraceId(traceId)
+	receiver.logger.Debug(
+		"Debug",
+		append([]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", *traceId),
+		}, fields...)...,
+	)
+}
+
+// Info - логирование информационных сообщений
+func (receiver *logIt) Info(message, op string, traceId *string, fields ...zap.Field) {
+	traceId = receiver.TraceId(traceId)
+	receiver.logger.Info(
+		message,
+		append([]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", *traceId),
+		}, fields...)...,
+	)
+}
+
+// Warn - логирование предупреждений
+func (receiver *logIt) Warn(message, op string, traceId *string, fields ...zap.Field) {
+	traceId = receiver.TraceId(traceId)
+	receiver.logger.Warn(
+		message,
+		append([]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", *traceId),
+		}, fields...)...,
+	)
+}
+
+// Error - логирование ошибок
+func (receiver *logIt) Error(err error, op string, traceId *string, fields ...zap.Field) {
+	traceId = receiver.TraceId(traceId)
+	receiver.logger.Error(
+		err.Error(),
+		append([]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", *traceId),
+		}, fields...)...,
+	)
+	sentry.CaptureException(err)
+}
+
+// Fatal - логирование критических ошибок, завершает приложение
+func (receiver *logIt) Fatal(err error, op string, traceId *string, fields ...zap.Field) {
+	traceId = receiver.TraceId(traceId)
+	receiver.logger.Fatal(
+		err.Error(),
+		append([]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", *traceId),
+		}, fields...)...,
+	)
+	sentry.CaptureException(err)
+}
+
+// MustNewLogger - инициализация нового логгера
+
+func (receiver *logIt) TraceId(traceId *string) *string {
 	if traceId != nil {
 		return traceId
 	}
