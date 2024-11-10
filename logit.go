@@ -1,6 +1,7 @@
 package logit
 
 import (
+	"context"
 	"fmt"
 	"github.com/budka-tech/configo"
 	"github.com/budka-tech/envo"
@@ -11,6 +12,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -19,12 +21,12 @@ type logIt struct {
 }
 
 type Logger interface {
-	Debug(op string, traceId *string, fields ...zap.Field)
-	Info(message, op string, traceId *string, fields ...zap.Field)
-	Warn(message, op string, traceId *string, fields ...zap.Field)
-	Error(err error, op string, traceId *string, fields ...zap.Field)
-	Fatal(err error, op string, traceId *string, fields ...zap.Field)
-	TraceId(traceId *string) *string
+	Debug(fields ...interface{})
+	Info(ctx context.Context, message, op string, fields ...zap.Field)
+	Warn(ctx context.Context, message, op string, fields ...zap.Field)
+	Error(ctx context.Context, err error, op string, fields ...zap.Field)
+	Fatal(ctx context.Context, err error, op string, fields ...zap.Field)
+	NewTraceContext(traceId *string) context.Context
 }
 
 func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *configo.Sentry, env *envo.Env) Logger {
@@ -112,68 +114,81 @@ func NewNopLogger() Logger {
 }
 
 // Debug - логирование отладочной информации
-func (receiver *logIt) Debug(op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
-	receiver.logger.Debug(
-		"Debug",
-		append([]zap.Field{
-			zap.String("op", op),
-			zap.String("traceId", *traceId),
-		}, fields...)...,
-	)
+func (receiver *logIt) Debug(fields ...interface{}) {
+	fmt.Println(strings.Repeat("-", 80))
+
+	debugTime := time.Now().Format("2006-01-02 15:04:05")
+	fmt.Printf("[DEBUG] %s\n", debugTime)
+
+	for i, field := range fields {
+		switch v := field.(type) {
+		case string:
+			fmt.Printf("Поле %d: %s\n", i, v)
+		case int, int32, int64:
+			fmt.Printf("Поле %d: %d\n", i, v)
+		case float32, float64:
+			fmt.Printf("Поле %d: %f\n", i, v)
+		case bool:
+			fmt.Printf("Поле %d: %t\n", i, v)
+		case error:
+			fmt.Printf("Поле %d (ошибка): %s\n", i, v.Error())
+		default:
+			fmt.Printf("Поле %d: %+v\n", i, v)
+		}
+	}
+
+	fmt.Println(strings.Repeat("-", 80))
 }
 
 // Info - логирование информационных сообщений
-func (receiver *logIt) Info(message, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
+func (receiver *logIt) Info(ctx context.Context, message, op string, fields ...zap.Field) {
+	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Info(
 		message,
 		append([]zap.Field{
 			zap.String("op", op),
-			zap.String("traceId", *traceId),
+			zap.String("traceId", traceId),
 		}, fields...)...,
 	)
 }
 
 // Warn - логирование предупреждений
-func (receiver *logIt) Warn(message, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
+func (receiver *logIt) Warn(ctx context.Context, message, op string, fields ...zap.Field) {
+	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Warn(
 		message,
 		append([]zap.Field{
 			zap.String("op", op),
-			zap.String("traceId", *traceId),
+			zap.String("traceId", traceId),
 		}, fields...)...,
 	)
 }
 
 // Error - логирование ошибок
-func (receiver *logIt) Error(err error, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
+func (receiver *logIt) Error(ctx context.Context, err error, op string, fields ...zap.Field) {
+	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Error(
 		err.Error(),
 		append([]zap.Field{
 			zap.String("op", op),
-			zap.String("traceId", *traceId),
+			zap.String("traceId", traceId),
 		}, fields...)...,
 	)
 	sentry.CaptureException(err)
 }
 
 // Fatal - логирование критических ошибок, завершает приложение
-func (receiver *logIt) Fatal(err error, op string, traceId *string, fields ...zap.Field) {
-	traceId = receiver.TraceId(traceId)
+func (receiver *logIt) Fatal(ctx context.Context, err error, op string, fields ...zap.Field) {
+	traceId := receiver.getTraceIdFromContext(ctx)
 	receiver.logger.Fatal(
 		err.Error(),
 		append([]zap.Field{
 			zap.String("op", op),
-			zap.String("traceId", *traceId),
+			zap.String("traceId", traceId),
 		}, fields...)...,
 	)
 	sentry.CaptureException(err)
 }
-
-// MustNewLogger - инициализация нового логгера
 
 func (receiver *logIt) TraceId(traceId *string) *string {
 	if traceId != nil {
@@ -182,6 +197,21 @@ func (receiver *logIt) TraceId(traceId *string) *string {
 
 	newTraceId := uuid.New().String()
 	return &newTraceId
+}
+
+func (receiver *logIt) NewTraceContext(traceId *string) context.Context {
+	if traceId == nil {
+		newTraceId := uuid.New().String()
+		traceId = &newTraceId
+	}
+	return context.WithValue(context.Background(), "traceId", *traceId)
+}
+
+func (receiver *logIt) getTraceIdFromContext(ctx context.Context) string {
+	if traceId, ok := ctx.Value("traceId").(string); ok {
+		return traceId
+	}
+	return uuid.New().String()
 }
 
 func fileName(appName, appVersion string) string {
