@@ -3,7 +3,7 @@ module github.com/budka-tech/logit-go
 go 1.23.1
 
 require (
-	github.com/budka-tech/configo v0.1.2
+	github.com/budka-tech/configo v0.1.4
 	github.com/budka-tech/envo v0.0.1
 	github.com/getsentry/sentry-go v0.29.1
 	github.com/google/uuid v1.6.0

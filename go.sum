@@ -1,8 +1,8 @@
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/toml v1.4.0 h1:kuoIxZQy2WRRk1pttg9asf+WVv6tWQuBNVmK8+nqPr0=
 github.com/BurntSushi/toml v1.4.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/budka-tech/configo v0.1.2 h1:IBC7hFB6wrvmF9g69cvkMJ5ON4C6cQZ+SNtNwFHf+HM=
-github.com/budka-tech/configo v0.1.2/go.mod h1:vyafxqurxsD37rWSPTjfitDKk18Onj+vrPyLYkSHUAY=
+github.com/budka-tech/configo v0.1.4 h1:ZjZNWrwGCLK2Dd3H4rxHVk0MMcfb0bG3FJeiblFZkj4=
+github.com/budka-tech/configo v0.1.4/go.mod h1:vyafxqurxsD37rWSPTjfitDKk18Onj+vrPyLYkSHUAY=
 github.com/budka-tech/envo v0.0.1 h1:/EM2a8KQvVl6cDlGCvUrPaR7EDrCC0OcY4RuH5RNZbo=
 github.com/budka-tech/envo v0.0.1/go.mod h1:HzYsjldl0FiJrr0FlbeHV8s6HGPQnG+CLOhtBd1kZtU=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
