@@ -23,12 +23,17 @@ type logIt struct {
 type Logger interface {
 	Debug(fields ...interface{})
 	Info(ctx context.Context, message string, fields ...zap.Field)
+	Infof(ctx context.Context, message string, a ...any)
 	Warn(ctx context.Context, message string, fields ...zap.Field)
+	Warnf(ctx context.Context, message string, a ...any)
 	Error(ctx context.Context, err error, fields ...zap.Field)
+	Errorf(ctx context.Context, format string, args ...interface{})
 	Fatal(ctx context.Context, err error, fields ...zap.Field)
+	Fatalf(ctx context.Context, format string, args ...interface{})
 	NewCtx(ctx context.Context, op string, traceId *string) context.Context
 	NewOpCtx(ctx context.Context, op string) context.Context
 	NewTraceCtx(ctx context.Context, traceId *string) context.Context
+	NewTraceContext(traceId *string) context.Context
 }
 
 func MustNewLogger(appConf *configo.App, loggerConf *configo.Logger, senConf *configo.Sentry, env *envo.Env) Logger {
@@ -154,6 +159,18 @@ func (receiver *logIt) Info(ctx context.Context, message string, fields ...zap.F
 	)
 }
 
+func (receiver *logIt) Infof(ctx context.Context, message string, a ...any) {
+	op := receiver.getOpFromContext(ctx)
+	traceId := receiver.getTraceIdFromContext(ctx)
+	receiver.logger.Info(
+		fmt.Sprintf(message, a),
+		append([]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", traceId),
+		})...,
+	)
+}
+
 // Warn - логирование предупреждений
 func (receiver *logIt) Warn(ctx context.Context, message string, fields ...zap.Field) {
 	op := receiver.getOpFromContext(ctx)
@@ -164,6 +181,18 @@ func (receiver *logIt) Warn(ctx context.Context, message string, fields ...zap.F
 			zap.String("op", op),
 			zap.String("traceId", traceId),
 		}, fields...)...,
+	)
+}
+
+func (receiver *logIt) Warnf(ctx context.Context, message string, a ...any) {
+	op := receiver.getOpFromContext(ctx)
+	traceId := receiver.getTraceIdFromContext(ctx)
+	receiver.logger.Warn(
+		fmt.Sprintf(message, a),
+		append([]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", traceId),
+		})...,
 	)
 }
 
@@ -181,6 +210,23 @@ func (receiver *logIt) Error(ctx context.Context, err error, fields ...zap.Field
 	sentry.CaptureException(err)
 }
 
+func (receiver *logIt) Errorf(ctx context.Context, format string, args ...interface{}) {
+	op := receiver.getOpFromContext(ctx)
+	traceId := receiver.getTraceIdFromContext(ctx)
+
+	err := fmt.Errorf(format, args...)
+
+	receiver.logger.Error(
+		err.Error(),
+		[]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", traceId),
+		}...,
+	)
+
+	sentry.CaptureException(err)
+}
+
 // Fatal - логирование критических ошибок, завершает приложение
 func (receiver *logIt) Fatal(ctx context.Context, err error, fields ...zap.Field) {
 	op := receiver.getOpFromContext(ctx)
@@ -192,6 +238,23 @@ func (receiver *logIt) Fatal(ctx context.Context, err error, fields ...zap.Field
 			zap.String("traceId", traceId),
 		}, fields...)...,
 	)
+	sentry.CaptureException(err)
+}
+
+func (receiver *logIt) Fatalf(ctx context.Context, format string, args ...interface{}) {
+	op := receiver.getOpFromContext(ctx)
+	traceId := receiver.getTraceIdFromContext(ctx)
+
+	err := fmt.Errorf(format, args...)
+
+	receiver.logger.Fatal(
+		err.Error(),
+		[]zap.Field{
+			zap.String("op", op),
+			zap.String("traceId", traceId),
+		}...,
+	)
+
 	sentry.CaptureException(err)
 }
 
